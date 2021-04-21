@@ -1,7 +1,9 @@
 """Common utility functions"""
 
 import os
+import pathlib
 import re
+import shutil
 import tempfile
 from io import open
 
@@ -93,7 +95,12 @@ def get_hook(repository, hook_name, extra_env={}):
 
         # On Windows, run the hook using "bash" explicitly
         if os.name != 'posix':
-            argv.insert(0, 'bash')
+            # try to locate bash.exe smartly (don't fall for C:/Windows/System32/bash.exe)...
+            git_exe = shutil.which('git.exe')
+            if not git_exe:
+                raise StgException('Failed to locate git.exe')
+            bash_exe = pathlib.Path(git_exe).parents[1] / 'bin' / 'bash.exe'
+            argv.insert(0, str(bash_exe))
 
         repository.default_iw.run(argv, extra_env).run()
 
