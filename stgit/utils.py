@@ -94,13 +94,28 @@ def get_hook(repository, hook_name, extra_env={}):
         argv.extend(parameters)
 
         # On Windows, run the hook using "bash" explicitly
-        if os.name != 'posix':
-            # try to locate bash.exe smartly (don't fall for C:/Windows/System32/bash.exe)...
-            git_exe = shutil.which('git.exe')
-            if not git_exe:
-                raise StgException('Failed to locate git.exe')
-            bash_exe = pathlib.Path(git_exe).parents[1] / 'bin' / 'bash.exe'
-            argv.insert(0, str(bash_exe))
+        if os.name == 'nt':
+            # try to locate bash.exe on the user's PATH, but don't fall for the
+            # WSL shim/bootstrapper %SYSTEMROOT%/System32/bash.exe
+            path = os.environ['PATH']
+            try:
+                # remove %SYSTEMROOT%/System32 from PATH
+                sys32 = os.path.join(os.environ['SYSTEMROOT'], 'system32').lower()
+                os.environ['PATH'] = ';'.join((p for p in path.split(';') if not p.lower() == sys32))
+                # try to honour the user's PATH (sans System32)
+                bash_exe = shutil.which('bash.exe')
+                if not bash_exe:
+                    # failed, try to use bash.exe that comes with Git for Windows
+                    git_exe = shutil.which('git.exe')
+                    if not git_exe:
+                        raise StgException('Failed to locate either bash.exe or git.exe')
+                    bash_exe = pathlib.Path(git_exe).parents[1] / 'bin' / 'bash.exe'
+                argv.insert(0, str(bash_exe))
+            finally:
+                # restore PATH
+                os.environ['PATH'] = path
+        elif os.name != 'posix':
+            argv.insert(0, 'bash')
 
         repository.default_iw.run(argv, extra_env).run()
 
