@@ -229,3 +229,7 @@ def main():
         _main()
     finally:
         run.finish_logging()
+
+
+if __name__ == '__main__':
+    main()
