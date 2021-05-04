@@ -101,14 +101,18 @@ def get_hook(repository, hook_name, extra_env={}):
             try:
                 # remove %SYSTEMROOT%/System32 from PATH
                 sys32 = os.path.join(os.environ['SYSTEMROOT'], 'system32').lower()
-                os.environ['PATH'] = ';'.join((p for p in path.split(';') if not p.lower() == sys32))
+                os.environ['PATH'] = ';'.join(
+                    (p for p in path.split(';') if not p.lower() == sys32)
+                )
                 # try to honour the user's PATH (sans System32)
                 bash_exe = shutil.which('bash.exe')
                 if not bash_exe:
                     # failed, try to use bash.exe that comes with Git for Windows
                     git_exe = shutil.which('git.exe')
                     if not git_exe:
-                        raise StgException('Failed to locate either bash.exe or git.exe')
+                        raise StgException(
+                            'Failed to locate either bash.exe or git.exe'
+                        )
                     bash_exe = pathlib.Path(git_exe).parents[1] / 'bin' / 'bash.exe'
                 argv.insert(0, str(bash_exe))
             finally:
